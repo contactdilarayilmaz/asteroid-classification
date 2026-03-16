@@ -1,0 +1,26 @@
+# ─── Veri Dosyaları (büyük, Drive'da kalsın) ───────────────────────────────
+nasa_asteroid/
+
+# ─── Python ────────────────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.egg-info/
+dist/
+build/
+
+# ─── Jupyter ───────────────────────────────────────────────────────────────
+.ipynb_checkpoints/
+*.ipynb_checkpoints
+
+# ─── Sanal Ortam ───────────────────────────────────────────────────────────
+env/
+venv/
+.env/
+.venv/
+
+# ─── OS ────────────────────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+desktop.ini
