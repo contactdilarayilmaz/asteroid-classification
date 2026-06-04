@@ -169,6 +169,48 @@ RandomForestClassifier(
 
 ---
 
+## 📓 Colab Notebook'larını Çalıştırma
+
+Notebook'lar Google Colab üzerinde çalışacak şekilde hazırlanmıştır. Tüm dosya okuma/yazma işlemleri `MyDrive/nasa_asteroid/` klasörü üzerinden yapılmaktadır.
+
+### Klasör Yapısını Hazırlama
+
+Notebook'ların çalışabilmesi için paylaşılan **`nasa_asteroid`** Drive klasörünü **kendi Google Drive'ınızın köküne (My Drive)** yüklemeniz yeterlidir. Klasör adını değiştirmeyin.
+
+```
+My Drive/
+└── nasa_asteroid/          ← klasörü buraya yükleyin, adını değiştirmeyin
+    ├── neo_v2.csv
+    ├── X_train.csv
+    ├── X_test.csv
+    ├── y_train.csv
+    ├── y_test.csv
+    ├── scaler.pkl
+    ├── random_forest.pkl
+    └── ...
+```
+
+Colab'da yol şu şekilde tanımlıdır ve **değiştirmenize gerek yoktur:**
+```python
+DRIVE_PATH = '/content/drive/MyDrive/nasa_asteroid/'
+```
+
+### Notebook Çalıştırma Sırası
+
+Notebook'ları sırayla çalıştırın — her biri bir öncekinin çıktısını kullanır:
+
+| Sıra | Notebook | Açıklama |
+|------|----------|----------|
+| 1 | `01_eda_and_cleaning.ipynb` | Veri keşfi, temizleme → `X_train.csv`, `scaler.pkl` üretir |
+| 2 | `02_baseline_models_shap.ipynb` | Model eğitimi → `random_forest.pkl` üretir |
+| 3 | `03_spice_visualization.ipynb` | Yörünge görselleştirme |
+| 4 | `04_neural_network_challenge.ipynb` | Sinir ağı deneyi |
+| 5 | `05_feature_engineering_challenge_ipynb.ipynb` | Özellik mühendisliği deneyi |
+
+> **Not:** `simulator/` web uygulaması için sadece `random_forest.pkl` ve `scaler.pkl` dosyaları gereklidir. Bu dosyalar Notebook 01 ve 02 çalıştırıldıktan sonra Drive'da oluşur.
+
+---
+
 ## 📦 Veri Seti
 
 - **Kaynak:** Kaggle — [NASA Nearest Earth Objects](https://www.kaggle.com/datasets/sameepvani/nasa-nearest-earth-objects)
