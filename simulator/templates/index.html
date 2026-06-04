@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PHA Asteroid Simülatörü — NASA NEO | ML Sınıflandırıcı</title>
+  <meta name="description" content="NASA NEO veri seti üzerinde Random Forest modeli ile potansiyel tehlikeli asteroid (PHA) tahmini ve yörünge simülasyonu." />
+  <link rel="stylesheet" href="/static/css/style.css" />
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════════════════════════
+     UPLOAD SCREEN
+═══════════════════════════════════════════════════════════ -->
+<div id="upload-screen">
+  <div class="upload-stars"></div>
+
+  <div class="upload-card">
+    <div class="upload-icon">☄️</div>
+
+    <h1>PHA Asteroid Simülatörü</h1>
+    <p class="subtitle">
+      NASA NEO veri setini yükleyin &mdash;
+      <span>Random Forest</span> modeli ile PHA tahmini yapın
+    </p>
+
+    <div id="drop-zone">
+      <div class="dz-icon">📂</div>
+      <p><strong>CSV dosyanızı buraya sürükleyin</strong><br>veya tıklayarak seçin</p>
+    </div>
+    <input type="file" id="file-input" accept=".csv" />
+
+    <div class="upload-hint">
+      <span class="hint-tag">est_diameter_min</span>
+      <span class="hint-tag">relative_velocity</span>
+      <span class="hint-tag">miss_distance</span>
+      <span class="hint-tag">absolute_magnitude</span>
+      <span class="hint-tag">hazardous ✓</span>
+    </div>
+
+    <div id="upload-progress">
+      <div class="prog-bar-bg"><div class="prog-bar"></div></div>
+      <p>🔬 Veriler yükleniyor, model eğitiliyor…</p>
+    </div>
+
+    <div class="upload-error" id="upload-error"></div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════
+     MAIN APP
+═══════════════════════════════════════════════════════════ -->
+<div id="app">
+
+  <!-- ── Header ──────────────────────────────────────────── -->
+  <header>
+    <span class="header-logo">☄️</span>
+    <div class="header-left">
+      <h1>PHA Asteroid Simülatörü</h1>
+      <div class="tagline" id="ds-info">NASA NEO veri seti — ML model tahminleri (Random Forest)</div>
+    </div>
+    <div class="header-actions">
+      <button class="btn-ghost" id="reset-btn">⬆ Yeni veri yükle</button>
+      <button class="btn-primary" id="query-btn" onclick="document.getElementById('asteroid-list').scrollIntoView({behavior:'smooth'})">
+        Modeli sorgula →
+      </button>
+    </div>
+  </header>
+
+  <!-- ── Stats Bar ────────────────────────────────────────── -->
+  <div class="stats-bar">
+    <div class="stat-card">
+      <div class="stat-label">Toplam asteroid</div>
+      <div class="stat-value neutral" id="stat-total">—</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">PHA olarak tahmin edilen</div>
+      <div class="stat-value danger" id="stat-pha">—</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Ortalama MOID (AU)</div>
+      <div class="stat-value warning" id="stat-moid">—</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">En kritik geçiş</div>
+      <div class="stat-value danger" id="stat-critical">—</div>
+    </div>
+  </div>
+
+  <!-- ── Main Content ─────────────────────────────────────── -->
+  <div class="main-content">
+
+    <!-- Left: Asteroid List -->
+    <div class="asteroid-panel">
+      <div class="panel-header">
+        <h3>
+          Asteroid listesi — seç ve simüle et
+          <span class="count-badge" id="pha-count-badge">0 PHA</span>
+        </h3>
+      </div>
+      <div id="asteroid-list"></div>
+    </div>
+
+    <!-- Right: Simulation Panel -->
+    <div class="sim-panel">
+
+      <!-- Sim header -->
+      <div class="sim-header" id="sim-header">
+        <div class="sim-title">
+          <span id="sim-title-text">Asteroid seçilmedi</span>
+          <span class="threat-badge" id="threat-badge" style="display:none"></span>
+        </div>
+      </div>
+
+      <!-- Sim body -->
+      <div class="sim-body" id="sim-body">
+
+        <!-- Empty state (initial) -->
+        <div class="sim-empty" id="sim-empty">
+          <div class="em-icon">🌌</div>
+          <p>Sol listeden bir asteroid seçin<br>yörünge simülasyonunu görün</p>
+        </div>
+
+        <!-- Canvas -->
+        <div class="canvas-wrap" id="canvas-wrap" style="height:300px; display:none;">
+          <canvas id="orbit-canvas"></canvas>
+        </div>
+
+        <!-- Legend -->
+        <div class="orbit-legend" id="orbit-legend" style="display:none;">
+          <div class="legend-item">
+            <div class="legend-dot" style="background:#fbbf24;"></div> Güneş
+          </div>
+          <div class="legend-item">
+            <div class="legend-dot" style="background:#22d3ee;"></div> Dünya
+          </div>
+          <div class="legend-item">
+            <div class="legend-dot" style="background:#f87171;"></div> Mars
+          </div>
+          <div class="legend-item">
+            <div class="legend-dot" style="background:#a78bfa;"></div> Seçili asteroid
+          </div>
+        </div>
+
+        <!-- Orbital Params -->
+        <div class="orbital-params" id="orbital-params-section" style="display:none;">
+          <div class="params-grid" id="params-grid"></div>
+        </div>
+
+        <!-- Distance Chart -->
+        <div class="chart-section" id="chart-section" style="display:none;">
+          <div class="chart-title-bar">📈 Dünya'ya mesafe — 2025–2035 (AU)</div>
+          <div class="chart-wrap">
+            <canvas id="dist-chart"></canvas>
+          </div>
+        </div>
+
+      </div><!-- /sim-body -->
+    </div><!-- /sim-panel -->
+  </div><!-- /main-content -->
+</div><!-- /app -->
+
+<!-- Chart.js CDN -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="/static/js/app.js"></script>
+
+</body>
+</html>

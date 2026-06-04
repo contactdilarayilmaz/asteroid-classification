@@ -26,3 +26,7 @@ desktop.ini
 
 # ─── Anaconda ─────────────────────────────────────────────────────────────
 anaconda_projects/
+
+# ─── Model dosyaları (büyük binary — Drive'da saklanır) ───────────────────
+simulator/models/*.pkl
+simulator/models/*.joblib
