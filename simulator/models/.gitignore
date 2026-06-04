@@ -1,0 +1,5 @@
+# Model dosyaları — boyutu büyük olduğu için GitHub'a gönderilmez.
+# Google Drive'dan indirip bu klasöre koyun.
+# Bkz: README.md → Adım 2
+*.pkl
+*.joblib
