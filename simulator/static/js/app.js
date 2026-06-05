@@ -387,19 +387,69 @@ function renderAsteroidList(asteroids) {
 }
 
 // ──────────────────────────────────────────────────────────────
-// SELECT ASTEROID
+// SELECT ASTEROID  (async — NASA SBDB entegrasyonu)
 // ──────────────────────────────────────────────────────────────
-function showSimPanels() {
-  document.getElementById('sim-empty').style.display             = 'none';
-  document.getElementById('canvas-wrap').style.display           = 'block';
-  document.getElementById('orbit-legend').style.display          = 'flex';
-  document.getElementById('orbital-params-section').style.display = 'block';
-  document.getElementById('chart-section').style.display          = 'block';
-  document.getElementById('threat-badge').style.display           = 'inline-block';
+
+/** NASA SBDB'den gerçek orbital eleman çeker. Bulunamazsa null döner. */
+async function fetchSBDBOrbital(name) {
+  try {
+    const res  = await fetch(`/api/sbdb?name=${encodeURIComponent(name)}`);
+    const data = await res.json();
+    return data.found ? data.orbital : null;
+  } catch {
+    return null;
+  }
 }
 
-function selectAsteroid(idx) {
-  // Highlight list item
+/** Veri kaynağı rozeti günceller */
+function setSourceBadge(isReal, sbdbPha, modelPha) {
+  let badge = document.getElementById('source-badge');
+  if (!badge) {
+    badge = document.createElement('span');
+    badge.id = 'source-badge';
+    badge.style.cssText = 'margin-left:8px; font-size:0.7rem; padding:2px 8px; border-radius:99px; font-weight:600; letter-spacing:.04em;';
+    const simTitle = document.getElementById('sim-header').querySelector('.sim-title');
+    if (simTitle) simTitle.appendChild(badge);
+  }
+
+  if (isReal) {
+    badge.textContent = '📡 NASA SBDB';
+    badge.style.background = '#14532d';
+    badge.style.color = '#4ade80';
+    badge.style.border = '1px solid #16a34a';
+
+    // NASA vs model karşılaştırma
+    let cmp = document.getElementById('nasa-compare');
+    if (!cmp) {
+      cmp = document.createElement('div');
+      cmp.id = 'nasa-compare';
+      cmp.style.cssText = 'margin-top:6px; font-size:0.75rem; padding:4px 10px; border-radius:6px; display:inline-block;';
+      document.getElementById('sim-header').appendChild(cmp);
+    }
+    if (sbdbPha === null || sbdbPha === undefined) {
+      cmp.style.display = 'none';
+    } else {
+      cmp.style.display = 'inline-block';
+      const agree = sbdbPha === modelPha;
+      cmp.style.background = agree ? 'rgba(20,83,45,0.5)' : 'rgba(127,29,29,0.5)';
+      cmp.style.border = agree ? '1px solid #16a34a' : '1px solid #dc2626';
+      cmp.style.color  = agree ? '#4ade80' : '#fca5a5';
+      cmp.textContent  = agree
+        ? `✓ Model ve NASA hemfikir (${sbdbPha ? 'PHA' : 'Güvenli'})`
+        : `⚠ Model: ${modelPha ? 'PHA' : 'Güvenli'} · NASA: ${sbdbPha ? 'PHA' : 'Güvenli'}`;
+    }
+  } else {
+    badge.textContent = '〜 Yaklaşık';
+    badge.style.background = 'rgba(71,85,105,0.4)';
+    badge.style.color = '#94a3b8';
+    badge.style.border = '1px solid #475569';
+    const cmp = document.getElementById('nasa-compare');
+    if (cmp) cmp.style.display = 'none';
+  }
+}
+
+async function selectAsteroid(idx) {
+  // Önceki seçimi temizle
   const prev = appState.selectedIdx;
   if (prev !== null) {
     const prevEl = document.getElementById(`ast-item-${prev}`);
@@ -414,10 +464,10 @@ function selectAsteroid(idx) {
 
   const ast = appState.asteroids[idx];
 
-  // Sim header text
+  // Başlık
   const titleEl  = document.getElementById('sim-title-text');
   const threatEl = document.getElementById('threat-badge');
-  if (titleEl)  titleEl.textContent  = ast.name;
+  if (titleEl)  titleEl.textContent = ast.name;
   if (threatEl) {
     threatEl.textContent = ast.is_pha
       ? `TEHLİKELİ (güven: ${ast.confidence}%)`
@@ -425,10 +475,10 @@ function selectAsteroid(idx) {
     threatEl.className = `threat-badge ${ast.is_pha ? 'danger' : 'safe'}`;
   }
 
-  // Reveal all hidden panels
+  // Panelleri göster
   showSimPanels();
 
-  // Size the canvas to its container AFTER panels are visible
+  // Canvas boyutla
   const cw = document.getElementById('canvas-wrap');
   const ca = document.getElementById('orbit-canvas');
   const dpr = window.devicePixelRatio || 1;
@@ -437,35 +487,44 @@ function selectAsteroid(idx) {
   ca.style.width  = cw.offsetWidth  + 'px';
   ca.style.height = cw.offsetHeight + 'px';
 
-  // Create or reuse OrbitalSimulator
+  // ── AŞAMA 1: Anında başlat (üretilmiş yaklaşık veri) ──────────
   if (!window._orbSim) {
     window._orbSim = new OrbitalSimulator(ca);
   } else {
-    // Re-sync canvas reference in case it changed
     window._orbSim.canvas = ca;
     window._orbSim.ctx    = ca.getContext('2d');
   }
   window._orbSim.setOrbital(ast.orbital);
   window._orbSim.start();
+  renderOrbitalParams(ast, ast.orbital, false);
+  fetchDistancesWithOrbital(ast, ast.orbital);
+  setSourceBadge(false, null, ast.is_pha);
 
-  // Orbital parameters grid
-  renderOrbitalParams(ast);
-
-  // Distance chart (async API call)
-  fetchDistances(ast);
+  // ── AŞAMA 2: Arka planda NASA SBDB'den gerçek veri ────────────
+  const sbdb = await fetchSBDBOrbital(ast.name);
+  if (sbdb && appState.selectedIdx === idx) {   // hâlâ aynı asteroid seçili mi?
+    window._orbSim.setOrbital(sbdb);
+    renderOrbitalParams(ast, sbdb, true);
+    fetchDistancesWithOrbital(ast, sbdb);
+    setSourceBadge(true, sbdb.sbdb_pha, ast.is_pha);
+  }
 }
 
 // ──────────────────────────────────────────────────────────────
 // ORBITAL PARAMETERS TABLE
 // ──────────────────────────────────────────────────────────────
-function renderOrbitalParams(ast) {
-  const orb = ast.orbital;
+function renderOrbitalParams(ast, orb, isReal) {
   const grid = document.getElementById('params-grid');
   const diamStr = ast.diam_min_m > 0 ? `${ast.diam_min_m.toFixed(0)} m` : '— m';
+  const moidVal = orb.moid != null ? `${Number(orb.moid).toFixed(4)} AU` : `${ast.miss_dist_au.toFixed(4)} AU`;
+  const moidColor = ast.is_pha ? '#fca5a5' : '#6ee7b7';
+  const srcLabel = isReal
+    ? '<span style="color:#4ade80;font-size:0.7rem;margin-left:4px">📡 NASA JPL</span>'
+    : '<span style="color:#64748b;font-size:0.7rem;margin-left:4px">〜 Yaklaşık</span>';
 
   grid.innerHTML = `
     <div class="param-item">
-      <div class="param-label">Yarı büyük eksen (a)</div>
+      <div class="param-label">Yarı büyük eksen (a) ${srcLabel}</div>
       <div class="param-value">${orb.semi_major_axis.toFixed(4)} AU</div>
     </div>
     <div class="param-item">
@@ -478,7 +537,7 @@ function renderOrbitalParams(ast) {
     </div>
     <div class="param-item">
       <div class="param-label">MOID</div>
-      <div class="param-value" style="color:${ast.is_pha ? '#fca5a5':'#6ee7b7'}">${ast.miss_dist_au.toFixed(4)} AU</div>
+      <div class="param-value" style="color:${moidColor}">${moidVal}</div>
     </div>
     <div class="param-item">
       <div class="param-label">Tahmini çap</div>
@@ -506,18 +565,23 @@ function renderOrbitalParams(ast) {
 // ──────────────────────────────────────────────────────────────
 // DISTANCE CHART
 // ──────────────────────────────────────────────────────────────
-async function fetchDistances(ast) {
+async function fetchDistancesWithOrbital(ast, orbital) {
   try {
     const res  = await fetch('/api/distances', {
       method:  'POST',
       headers: { 'Content-Type': 'application/json' },
-      body:    JSON.stringify({ orbital: ast.orbital }),
+      body:    JSON.stringify({ orbital }),
     });
     const data = await res.json();
     renderDistanceChart(data, ast);
   } catch (e) {
     console.warn('Distance fetch failed:', e);
   }
+}
+
+// Geriye dönük uyumluluk
+async function fetchDistances(ast) {
+  return fetchDistancesWithOrbital(ast, ast.orbital);
 }
 
 function renderDistanceChart(data, ast) {

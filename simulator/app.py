@@ -2,7 +2,12 @@ from flask import Flask, render_template, request, jsonify
 import pandas as pd
 import numpy as np
 from sklearn.impute import SimpleImputer
-import pickle, io, os
+import pickle, io, os, re
+try:
+    import requests as _requests
+    REQUESTS_OK = True
+except ImportError:
+    REQUESTS_OK = False
 
 app = Flask(__name__)
 
@@ -46,6 +51,88 @@ else:
     print(f"[WARN] Eksik dosyalar: {', '.join(missing)}")
     print(f"       Lutfen Colab notebook'indan ilgili .pkl dosyalarini")
     print(f"       su klasore kopyalayin: {MODELS_DIR}")
+
+
+# ─── NASA SBDB Cache & Helpers ──────────────────────────────
+_sbdb_cache = {}
+
+def _sbdb_query_str(name):
+    """Asteroid adından en iyi SBDB sorgu stringini çıkar."""
+    s = str(name).strip()
+    # Önce numarayı dene: '99942 Apophis (2004 MN4)' → '99942'
+    m = re.match(r'^(\d+)\s', s)
+    if m:
+        return m.group(1)
+    # Parantezi çıkar: '2020 ND (...)' → '2020 ND'
+    clean = re.sub(r'\s*\([^)]*\)\s*$', '', s).strip()
+    return clean
+
+
+def _fetch_sbdb(name):
+    """NASA SBDB API'den gerçek orbital elemanları getir."""
+    if not REQUESTS_OK:
+        return None
+    query = _sbdb_query_str(name)
+    if query in _sbdb_cache:
+        return _sbdb_cache[query]
+    try:
+        resp = _requests.get(
+            'https://ssd.nasa.gov/api/sbdb.api',
+            params={'sstr': query, 'orb': '1'},
+            timeout=8
+        )
+        if resp.status_code != 200:
+            _sbdb_cache[query] = None
+            return None
+        data = resp.json()
+        if 'orbit' not in data or 'elements' not in data['orbit']:
+            _sbdb_cache[query] = None
+            return None
+
+        # Elemanları dict'e çevir
+        elems = {}
+        for el in data['orbit']['elements']:
+            try:
+                elems[el['name']] = float(el['value'])
+            except (KeyError, ValueError, TypeError):
+                pass
+
+        a   = elems.get('a')
+        e   = elems.get('e')
+        inc = elems.get('i')
+        per = elems.get('per')
+        if not all([a, e is not None, inc is not None, per]):
+            _sbdb_cache[query] = None
+            return None
+
+        q  = elems.get('q',  a * (1 - e))
+        ad = elems.get('ad', a * (1 + e))
+        w  = elems.get('w',  0.0)
+        om = elems.get('om', 0.0)
+
+        obj      = data.get('object', {})
+        sbdb_pha = obj.get('pha', None)   # 'Y' veya None
+        shortname = obj.get('shortname', '')
+
+        result = {
+            'semi_major_axis': round(float(a),   4),
+            'eccentricity':    round(float(e),   4),
+            'inclination':     round(float(inc), 2),
+            'omega':           round(float(w),   2),
+            'node':            round(float(om),  2),
+            'period':          round(float(per), 1),
+            'perihelion':      round(float(q),   4),
+            'aphelion':        round(float(ad),  4),
+            'moid':            round(float(elems['moid']), 4) if 'moid' in elems else None,
+            'is_real':         True,
+            'sbdb_pha':        sbdb_pha == 'Y' if sbdb_pha is not None else None,
+            'sbdb_name':       shortname,
+        }
+        _sbdb_cache[query] = result
+        return result
+    except Exception:
+        _sbdb_cache[query] = None
+        return None
 
 
 # ─── Helpers ─────────────────────────────────────────────────
@@ -196,12 +283,15 @@ def classify():
         conf     = round(float(probs[i]) * 100, 1)
         is_pha   = bool(preds[i])
         orbital  = generate_orbital_elements(i, miss_km, abs_mag)
+        # Gerçek etiket (veri setindeki hazardous sütunu)
+        gt_pha = bool(row.get('hazardous', None)) if 'hazardous' in df.columns else None
 
         results.append({
             'id':           i,
             'name':         names[i],
             'is_pha':       is_pha,
             'confidence':   conf,
+            'gt_pha':       gt_pha,       # ground-truth (NASA etiketi)
             'h_mag':        round(abs_mag, 1),
             'miss_dist_au': round(miss_km / 149_597_870.7, 4),
             'diam_min_km':  round(diam_min, 4),
@@ -228,6 +318,18 @@ def classify():
         },
         'asteroids': results[:200],
     })
+
+
+@app.route('/api/sbdb')
+def sbdb_lookup():
+    """NASA SBDB'den gerçek orbital eleman verisini getir."""
+    name = request.args.get('name', '').strip()
+    if not name:
+        return jsonify({'found': False, 'reason': 'name eksik'})
+    result = _fetch_sbdb(name)
+    if result is None:
+        return jsonify({'found': False, 'reason': 'bulunamadi'})
+    return jsonify({'found': True, 'orbital': result})
 
 
 @app.route('/api/distances', methods=['POST'])
