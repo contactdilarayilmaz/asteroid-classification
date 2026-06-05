@@ -212,25 +212,28 @@ class OrbitalSimulator {
     const M  = (n * t) % (2 * Math.PI);
     const e  = orb.eccentricity;
 
-    // Kepler iteration
+    // Kepler iteration (Eccentric anomaly E)
     let E = M;
     for (let i = 0; i < 20; i++) E = M + e * Math.sin(E);
 
+    // True anomaly
     const nu = 2 * Math.atan2(
       Math.sqrt(1 + e) * Math.sin(E / 2),
       Math.sqrt(1 - e) * Math.cos(E / 2)
     );
 
-    const r   = orb.semi_major_axis * (1 - e * Math.cos(E)) * sc;
-    const om  = (orb.omega || 0) * Math.PI / 180;
-    const ang = nu + om;
-    const c   = orb.semi_major_axis * e * sc;
+    // Heliocentric distance
+    const r  = orb.semi_major_axis * (1 - e * Math.cos(E)) * sc;
+    const om = (orb.omega || 0) * Math.PI / 180;
 
+    // Heliocentric Cartesian position (Sun at origin)
+    // x = r·cos(ν+ω),  y = r·sin(ν+ω)
     return {
-      x: -c * Math.cos(om) + r * Math.cos(ang),
-      y: -c * Math.sin(om) + r * Math.sin(ang),
+      x: r * Math.cos(nu + om),
+      y: r * Math.sin(nu + om),
     };
   }
+
 }
 
 // ──────────────────────────────────────────────────────────────
@@ -389,6 +392,15 @@ function renderAsteroidList(asteroids) {
 // ──────────────────────────────────────────────────────────────
 // SELECT ASTEROID  (async — NASA SBDB entegrasyonu)
 // ──────────────────────────────────────────────────────────────
+
+function showSimPanels() {
+  document.getElementById('sim-empty').style.display              = 'none';
+  document.getElementById('canvas-wrap').style.display            = 'block';
+  document.getElementById('orbit-legend').style.display           = 'flex';
+  document.getElementById('orbital-params-section').style.display = 'block';
+  document.getElementById('chart-section').style.display          = 'block';
+  document.getElementById('threat-badge').style.display           = 'inline-block';
+}
 
 /** NASA SBDB'den gerçek orbital eleman çeker. Bulunamazsa null döner. */
 async function fetchSBDBOrbital(name) {
