@@ -4,7 +4,7 @@
 
 ---
 
-## 📋 Proje Özeti
+## Proje Özeti
 
 Bu proje, NASA'nın Near Earth Object (NEO) veri seti kullanılarak asteroitlerin **Potansiyel Tehlikeli Asteroid (PHA)** olup olmadığını tahmin eden bir makine öğrenmesi sistemi ve bunu görselleştiren bir web simülatörü içermektedir.
 
@@ -17,7 +17,7 @@ Bu proje, NASA'nın Near Earth Object (NEO) veri seti kullanılarak asteroitleri
 
 ---
 
-## 📁 Proje Yapısı
+## Proje Yapısı
 
 ```
 asteroid-classification/
@@ -121,19 +121,19 @@ Başarılı çıktı:
 
 ---
 
-## 🖥️ Uygulama Özellikleri
+## Uygulama Özellikleri
 
 | Özellik | Açıklama |
 |---------|----------|
-| 📊 **İstatistik Kartları** | Toplam asteroid, PHA sayısı, Ort. MOID, En kritik |
-| 🔴 **Asteroid Listesi** | PHA/Güvenli rozeti, güven yüzdesi, MOID değeri |
-| 🌌 **Yörünge Simülasyonu** | Güneş, Dünya, Mars, Asteroid animasyonu (Canvas) |
-| 📐 **Orbital Parametreler** | a, e, i, MOID, çap, periyot, perihel, afel |
-| 📈 **Mesafe Grafiği** | Dünya'ya mesafe 2025-2035 (Chart.js) |
+| **İstatistik Kartları** | Toplam asteroid, PHA sayısı, Ort. MOID, En kritik |
+| **Asteroid Listesi** | PHA/Güvenli rozeti, güven yüzdesi, MOID değeri |
+| **Yörünge Simülasyonu** | Güneş, Dünya, Mars, Asteroid animasyonu (Canvas) |
+| **Orbital Parametreler** | a, e, i, MOID, çap, periyot, perihel, afel |
+| **Mesafe Grafiği** | Dünya'ya mesafe 2025-2035 (Chart.js) |
 
 ---
 
-## 📊 Model Karşılaştırması
+## Model Karşılaştırması
 
 | Model | Accuracy | F1-Score | ROC-AUC | PR-AUC |
 |-------|----------|----------|---------|--------|
@@ -147,7 +147,7 @@ Başarılı çıktı:
 
 ---
 
-## 🔧 Teknik Detaylar
+## Teknik Detaylar
 
 ### Random Forest Konfigürasyonu
 ```python
@@ -169,7 +169,7 @@ RandomForestClassifier(
 
 ---
 
-## 📓 Colab Notebook'larını Çalıştırma
+## Colab Notebook'larını Çalıştırma
 
 Notebook'lar Google Colab üzerinde çalışacak şekilde hazırlanmıştır. Tüm dosya okuma/yazma işlemleri `MyDrive/nasa_asteroid/` klasörü üzerinden yapılmaktadır.
 
@@ -211,7 +211,7 @@ Notebook'ları sırayla çalıştırın — her biri bir öncekinin çıktısın
 
 ---
 
-## 📦 Veri Seti
+## Veri Seti
 
 - **Kaynak:** Kaggle — [NASA Nearest Earth Objects](https://www.kaggle.com/datasets/sameepvani/nasa-nearest-earth-objects)
 - **Dosya:** `neo_v2.csv`
