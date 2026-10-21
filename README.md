@@ -219,4 +219,5 @@ Notebook'ları sırayla çalıştırın — her biri bir öncekinin çıktısın
 - **PHA oranı:** ~%9.7 (dengesiz)
 
 ---
+[Rapor (PDF)](docs/rapor.pdf)
 *Bitirme Projesi — 2025/2026*
