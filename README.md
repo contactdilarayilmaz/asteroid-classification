@@ -220,4 +220,5 @@ Notebook'ları sırayla çalıştırın — her biri bir öncekinin çıktısın
 
 ---
 [Rapor (PDF)](docs/rapor.pdf)
+
 *Bitirme Projesi — 2025/2026*
