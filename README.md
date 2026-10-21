@@ -219,5 +219,7 @@ Notebook'ları sırayla çalıştırın — her biri bir öncekinin çıktısın
 - **PHA oranı:** ~%9.7 (dengesiz)
 
 ---
-[ Tezi oku (PDF) ] (docs/Makine Öğrenmesi İle PHA Sınıflandırma Final.pdf)
+
+[Tezi oku (PDF)](docs/tez.pdf)
+
 *Bitirme Projesi — 2025/2026*
